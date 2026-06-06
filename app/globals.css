@@ -1,11 +1,36 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
+@theme {
+  --color-background: #0a0a08;
+  --color-surface: #111110;
+  --color-border: #1e1e1b;
+  --color-gold: #c9a84c;
+  --color-gold-light: #e8c97e;
+  --color-cream: #f5f0e8;
+  --color-muted: #6b6b5f;
+
   --font-display: "Cormorant Garamond", serif;
   --font-body: "DM Sans", sans-serif;
   --font-mono: "DM Mono", monospace;
+
+  --animate-fade-up: fadeUp 0.7s ease forwards;
+  --animate-fade-in: fadeIn 0.5s ease forwards;
+  --animate-line-grow: lineGrow 1s ease forwards;
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes lineGrow {
+  0% { width: 0%; }
+  100% { width: 100%; }
 }
 
 * {
@@ -20,18 +45,9 @@ html {
   scrollbar-color: #c9a84c #0a0a08;
 }
 
-html::-webkit-scrollbar {
-  width: 4px;
-}
-
-html::-webkit-scrollbar-track {
-  background: #0a0a08;
-}
-
-html::-webkit-scrollbar-thumb {
-  background: #c9a84c;
-  border-radius: 2px;
-}
+html::-webkit-scrollbar { width: 4px; }
+html::-webkit-scrollbar-track { background: #0a0a08; }
+html::-webkit-scrollbar-thumb { background: #c9a84c; border-radius: 2px; }
 
 body {
   background-color: #0a0a08;
@@ -42,7 +58,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Grain overlay */
 body::before {
   content: "";
   position: fixed;
@@ -53,43 +68,36 @@ body::before {
   z-index: 9999;
 }
 
-/* Selection */
 ::selection {
   background: #c9a84c33;
   color: #e8c97e;
 }
 
-/* Focus */
 :focus-visible {
   outline: 1px solid #c9a84c;
   outline-offset: 3px;
 }
 
-/* Typography */
 .font-display {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
 }
 
-/* Utility */
 .text-balance {
   text-wrap: balance;
 }
 
-/* Section padding */
 .section-padding {
   padding: 7rem 0;
 }
 
-/* Gold line divider */
 .gold-line {
   width: 3rem;
   height: 1px;
   background: #c9a84c;
   display: block;
+  flex-shrink: 0;
 }
 
-/* Animate on scroll — initial state */
 .anim-hidden {
   opacity: 0;
   transform: translateY(28px);
@@ -101,7 +109,6 @@ body::before {
   transform: translateY(0);
 }
 
-/* Stagger children */
 .stagger > *:nth-child(1) { transition-delay: 0ms; }
 .stagger > *:nth-child(2) { transition-delay: 80ms; }
 .stagger > *:nth-child(3) { transition-delay: 160ms; }
@@ -109,13 +116,11 @@ body::before {
 .stagger > *:nth-child(5) { transition-delay: 320ms; }
 .stagger > *:nth-child(6) { transition-delay: 400ms; }
 
-/* Admin sidebar */
 .admin-sidebar {
   background: #0d0d0b;
   border-right: 1px solid #1e1e1b;
 }
 
-/* Input base */
 .input-base {
   background: #111110;
   border: 1px solid #1e1e1b;
