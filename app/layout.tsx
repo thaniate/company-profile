@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, DM_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { constructMetadata } from "@/lib/metadata";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -25,19 +26,7 @@ const dmMono = DM_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Studio — Digital Creative Agency",
-    template: "%s | Studio",
-  },
-  description:
-    "A creative studio crafting brands and digital products that matter.",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    siteName: "Studio",
-  },
-};
+export const metadata: Metadata = constructMetadata();
 
 export default function RootLayout({
   children,
