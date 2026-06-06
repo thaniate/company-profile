@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { HeroSection } from '@/lib/types';
-import { Upload, Save, ImageIcon } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Upload, Save, ImageIcon, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function HeroPage() {
   const supabase = createClient();
@@ -22,6 +23,7 @@ export default function HeroPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function HeroPage() {
         .single();
 
       if (error) {
-        setError('Failed to load hero section.');
+        setFetchError('Failed to load hero section. Please refresh the page.');
         setLoading(false);
         return;
       }
@@ -65,25 +67,14 @@ export default function HeroPage() {
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return form.image_url;
-
     setUploading(true);
     const ext = imageFile.name.split('.').pop();
     const fileName = `hero/hero-${Date.now()}.${ext}`;
-
     const { error: uploadError } = await supabase.storage
       .from('media')
       .upload(fileName, imageFile, { upsert: true });
-
-    if (uploadError) {
-      setError('Image upload failed.');
-      setUploading(false);
-      return null;
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('media')
-      .getPublicUrl(fileName);
-
+    if (uploadError) { setError('Image upload failed.'); setUploading(false); return null; }
+    const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName);
     setUploading(false);
     return urlData.publicUrl;
   };
@@ -95,10 +86,7 @@ export default function HeroPage() {
     setSaving(true);
 
     const imageUrl = await uploadImage();
-    if (imageUrl === null && imageFile) {
-      setSaving(false);
-      return;
-    }
+    if (imageUrl === null && imageFile) { setSaving(false); return; }
 
     const { error: updateError } = await supabase
       .from('hero_section')
@@ -112,11 +100,7 @@ export default function HeroPage() {
       })
       .eq('id', data?.id);
 
-    if (updateError) {
-      setError('Failed to save changes.');
-      setSaving(false);
-      return;
-    }
+    if (updateError) { setError('Failed to save changes.'); setSaving(false); return; }
 
     setForm((prev) => ({ ...prev, image_url: imageUrl }));
     setImageFile(null);
@@ -124,10 +108,59 @@ export default function HeroPage() {
     setSaving(false);
   };
 
+  // Loading State
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="p-6 md:p-10 max-w-2xl">
+        <div className="mb-8">
+          <div className="h-8 w-40 bg-gray-800 rounded-lg animate-pulse mb-2" />
+          <div className="h-4 w-56 bg-gray-800 rounded animate-pulse" />
+        </div>
+        <div className="space-y-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i}>
+              <div className="h-4 w-24 bg-gray-800 rounded animate-pulse mb-2" />
+              <div className="h-10 w-full bg-gray-800 rounded-lg animate-pulse" />
+            </div>
+          ))}
+          <div className="h-48 w-full bg-gray-800 rounded-xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (fetchError) {
+    return (
+      <div className="p-6 md:p-10 max-w-2xl">
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4">
+            <AlertCircle size={24} className="text-red-400" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-2">Failed to Load</h3>
+          <p className="text-gray-400 text-sm mb-6 max-w-xs">{fetchError}</p>
+          <button
+            onClick={() => { setFetchError(null); setLoading(true); }}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-5 py-2.5 transition"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty State
+  if (!data) {
+    return (
+      <div className="p-6 md:p-10 max-w-2xl">
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-12 h-12 bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+            <Sparkles size={24} className="text-gray-600" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-2">No Hero Data</h3>
+          <p className="text-gray-400 text-sm max-w-xs">Hero section record not found in the database.</p>
+        </div>
       </div>
     );
   }
@@ -140,7 +173,6 @@ export default function HeroPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Headline */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">Headline</label>
           <input
@@ -152,7 +184,6 @@ export default function HeroPage() {
           />
         </div>
 
-        {/* Subheadline */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">Subheadline</label>
           <textarea
@@ -165,7 +196,6 @@ export default function HeroPage() {
           />
         </div>
 
-        {/* CTA */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">CTA Text</label>
@@ -189,17 +219,12 @@ export default function HeroPage() {
           </div>
         </div>
 
-        {/* Image Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">Hero Image</label>
           <div className="flex flex-col gap-3">
             {imagePreview ? (
               <div className="relative w-full h-48 rounded-xl overflow-hidden border border-gray-700">
-                <img
-                  src={imagePreview}
-                  alt="Hero preview"
-                  className="w-full h-full object-cover"
-                />
+                <img src={imagePreview} alt="Hero preview" className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="w-full h-48 rounded-xl border border-dashed border-gray-700 flex items-center justify-center">
@@ -209,20 +234,14 @@ export default function HeroPage() {
             <label className="cursor-pointer inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition w-fit">
               <Upload size={15} />
               {uploading ? 'Uploading...' : 'Choose Image'}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
             </label>
           </div>
         </div>
 
-        {/* Feedback */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-2.5">
-            {error}
+          <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-2.5">
+            <AlertCircle size={15} className="shrink-0" /> {error}
           </div>
         )}
         {success && (
@@ -231,7 +250,6 @@ export default function HeroPage() {
           </div>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={saving || uploading}

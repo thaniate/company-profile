@@ -3,23 +3,26 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ContactSubmission } from '@/lib/types';
-import { Mail, MailOpen, Trash2, X, Phone } from 'lucide-react';
+import { Mail, MailOpen, Trash2, X, Phone, AlertCircle } from 'lucide-react';
 
 export default function ContactsPage() {
   const supabase = createClient();
 
   const [items, setItems] = useState<ContactSubmission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ContactSubmission | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
   const fetchItems = async () => {
+    setFetchError(null);
     const { data, error } = await supabase
       .from('contact_submissions')
       .select('*')
       .order('created_at', { ascending: false });
-    if (!error && data) setItems(data);
+    if (error) { setFetchError('Failed to load messages. Please try again.'); }
+    else if (data) setItems(data);
     setLoading(false);
   };
 
@@ -28,23 +31,14 @@ export default function ContactsPage() {
   const handleOpen = async (item: ContactSubmission) => {
     setSelectedItem(item);
     if (!item.is_read) {
-      await supabase
-        .from('contact_submissions')
-        .update({ is_read: true })
-        .eq('id', item.id);
-      setItems((prev) =>
-        prev.map((i) => i.id === item.id ? { ...i, is_read: true } : i)
-      );
+      await supabase.from('contact_submissions').update({ is_read: true }).eq('id', item.id);
+      setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, is_read: true } : i));
     }
   };
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('contact_submissions').delete().eq('id', id);
-    if (!error) {
-      setDeleteId(null);
-      if (selectedItem?.id === id) setSelectedItem(null);
-      fetchItems();
-    }
+    if (!error) { setDeleteId(null); if (selectedItem?.id === id) setSelectedItem(null); fetchItems(); }
   };
 
   const filtered = items.filter((i) => {
@@ -55,103 +49,100 @@ export default function ContactsPage() {
 
   const unreadCount = items.filter((i) => !i.is_read).length;
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  // Loading State
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="p-6 md:p-10">
+        <div className="mb-6">
+          <div className="h-8 w-32 bg-gray-800 rounded-lg animate-pulse mb-2" />
+          <div className="h-4 w-40 bg-gray-800 rounded animate-pulse" />
+        </div>
+        <div className="flex gap-2 mb-6">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-8 w-20 bg-gray-800 rounded-lg animate-pulse" />)}
+        </div>
+        <div className="flex flex-col gap-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 h-20 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (fetchError) {
+    return (
+      <div className="p-6 md:p-10">
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4">
+            <AlertCircle size={24} className="text-red-400" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-2">Failed to Load</h3>
+          <p className="text-gray-400 text-sm mb-6 max-w-xs">{fetchError}</p>
+          <button onClick={() => { setLoading(true); fetchItems(); }} className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-5 py-2.5 transition">Try Again</button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-6 md:p-10">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Contacts</h1>
           <p className="text-gray-400 text-sm mt-1">
-            {unreadCount > 0
-              ? `${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`
-              : 'All messages read'}
+            {unreadCount > 0 ? `${unreadCount} unread message${unreadCount > 1 ? 's' : ''}` : 'All messages read'}
           </p>
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-2 mb-6">
         {(['all', 'unread', 'read'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition
-              ${filter === tab
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-white'
-              }`}
-          >
+          <button key={tab} onClick={() => setFilter(tab)} className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition ${filter === tab ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
             {tab}
             {tab === 'unread' && unreadCount > 0 && (
-              <span className="ml-2 bg-indigo-500/30 text-indigo-300 text-xs px-1.5 py-0.5 rounded-full">
-                {unreadCount}
-              </span>
+              <span className="ml-2 bg-indigo-500/30 text-indigo-300 text-xs px-1.5 py-0.5 rounded-full">{unreadCount}</span>
             )}
           </button>
         ))}
       </div>
 
-      {/* List */}
+      {/* Empty State */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
-          <Mail size={40} className="mb-3" />
-          <p className="text-sm">No messages found.</p>
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-12 h-12 bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+            <Mail size={24} className="text-gray-600" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-2">
+            {filter === 'all' ? 'No Messages Yet' : `No ${filter.charAt(0).toUpperCase() + filter.slice(1)} Messages`}
+          </h3>
+          <p className="text-gray-400 text-sm max-w-xs">
+            {filter === 'all' ? 'Contact form submissions will appear here.' : `You have no ${filter} messages.`}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleOpen(item)}
-              className={`group cursor-pointer bg-gray-900 border rounded-xl px-5 py-4 flex items-start justify-between gap-4 transition
-                ${!item.is_read
-                  ? 'border-indigo-500/40 hover:border-indigo-500/70'
-                  : 'border-gray-800 hover:border-gray-700'
-                }`}
-            >
+            <div key={item.id} onClick={() => handleOpen(item)} className={`group cursor-pointer bg-gray-900 border rounded-xl px-5 py-4 flex items-start justify-between gap-4 transition ${!item.is_read ? 'border-indigo-500/40 hover:border-indigo-500/70' : 'border-gray-800 hover:border-gray-700'}`}>
               <div className="flex items-start gap-3 min-w-0">
                 <div className={`mt-0.5 shrink-0 ${!item.is_read ? 'text-indigo-400' : 'text-gray-600'}`}>
                   {item.is_read ? <MailOpen size={18} /> : <Mail size={18} />}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`text-sm font-medium truncate ${!item.is_read ? 'text-white' : 'text-gray-300'}`}>
-                      {item.name}
-                    </span>
-                    {!item.is_read && (
-                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                    )}
+                    <span className={`text-sm font-medium truncate ${!item.is_read ? 'text-white' : 'text-gray-300'}`}>{item.name}</span>
+                    {!item.is_read && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500" />}
                   </div>
                   <p className="text-gray-500 text-xs truncate">{item.email}</p>
                   <p className="text-gray-400 text-xs mt-1 line-clamp-1">{item.message}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-gray-600 text-xs hidden sm:block">
-                  {formatDate(item.created_at)}
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }}
-                  className="text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
-                >
+                <span className="text-gray-600 text-xs hidden sm:block">{formatDate(item.created_at)}</span>
+                <button onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }} className="text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -160,22 +151,14 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Detail Modal */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
               <h2 className="text-white font-semibold text-base">Message Detail</h2>
-              <button
-                onClick={() => setSelectedItem(null)}
-                className="text-gray-500 hover:text-white transition"
-              >
-                <X size={18} />
-              </button>
+              <button onClick={() => setSelectedItem(null)} className="text-gray-500 hover:text-white transition"><X size={18} /></button>
             </div>
-
             <div className="p-6 space-y-5">
-              {/* Sender Info */}
               <div className="bg-gray-800/50 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 text-xs">Name</span>
@@ -183,19 +166,13 @@ export default function ContactsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 text-xs">Email</span>
-                  
-                    href={`mailto:${selectedItem.email}`}
-                    className="text-indigo-400 text-sm hover:underline"
-                  >
-                    {selectedItem.email}
-                  </a>
+                  <a href={`mailto:${selectedItem.email}`} className="text-indigo-400 text-sm hover:underline">{selectedItem.email}</a>
                 </div>
                 {selectedItem.phone && (
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500 text-xs">Phone</span>
                     <div className="flex items-center gap-1.5 text-sm text-gray-300">
-                      <Phone size={13} className="text-gray-500" />
-                      {selectedItem.phone}
+                      <Phone size={13} className="text-gray-500" />{selectedItem.phone}
                     </div>
                   </div>
                 )}
@@ -204,26 +181,13 @@ export default function ContactsPage() {
                   <span className="text-gray-300 text-sm">{formatDate(selectedItem.created_at)}</span>
                 </div>
               </div>
-
-              {/* Message */}
               <div>
                 <p className="text-gray-500 text-xs mb-2">Message</p>
-                <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap bg-gray-800/50 rounded-xl p-4">
-                  {selectedItem.message}
-                </p>
+                <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap bg-gray-800/50 rounded-xl p-4">{selectedItem.message}</p>
               </div>
-
               <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => setSelectedItem(null)}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => { setDeleteId(selectedItem.id); setSelectedItem(null); }}
-                  className="inline-flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg px-4 py-2.5 transition"
-                >
+                <button onClick={() => setSelectedItem(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition">Close</button>
+                <button onClick={() => { setDeleteId(selectedItem.id); setSelectedItem(null); }} className="inline-flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg px-4 py-2.5 transition">
                   <Trash2 size={14} /> Delete
                 </button>
               </div>
@@ -232,27 +196,14 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Delete Confirm */}
       {deleteId && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-white font-semibold text-base mb-2">Delete Message</h3>
-            <p className="text-gray-400 text-sm mb-6">
-              Are you sure you want to delete this message? This action cannot be undone.
-            </p>
+            <p className="text-gray-400 text-sm mb-6">Are you sure you want to delete this message? This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteId)}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
-              >
-                Delete
-              </button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition">Cancel</button>
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition">Delete</button>
             </div>
           </div>
         </div>

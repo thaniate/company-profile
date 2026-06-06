@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PortfolioItem } from '@/lib/types';
-import { Plus, Pencil, Trash2, X, Save, ImageIcon, Upload, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ImageIcon, Upload, Tag, AlertCircle } from 'lucide-react';
 
 const emptyForm = {
   title: '',
@@ -20,6 +20,7 @@ export default function PortfolioPage() {
 
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -32,90 +33,51 @@ export default function PortfolioPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchItems = async () => {
+    setFetchError(null);
     const { data, error } = await supabase
       .from('portfolio_items')
       .select('*')
       .order('order_index', { ascending: true });
-
-    if (!error && data) setItems(data);
+    if (error) { setFetchError('Failed to load portfolio items. Please try again.'); }
+    else if (data) setItems(data);
     setLoading(false);
   };
 
   useEffect(() => { fetchItems(); }, []);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(emptyForm);
-    setTagInput('');
-    setImageFile(null);
-    setImagePreview(null);
-    setError(null);
-    setModalOpen(true);
-  };
-
+  const openCreate = () => { setEditingId(null); setForm(emptyForm); setTagInput(''); setImageFile(null); setImagePreview(null); setError(null); setModalOpen(true); };
   const openEdit = (item: PortfolioItem) => {
     setEditingId(item.id);
-    setForm({
-      title: item.title,
-      description: item.description,
-      image_url: item.image_url,
-      tags: item.tags ?? [],
-      order_index: item.order_index,
-    });
-    setTagInput('');
-    setImageFile(null);
-    setImagePreview(item.image_url);
-    setError(null);
-    setModalOpen(true);
+    setForm({ title: item.title, description: item.description, image_url: item.image_url, tags: item.tags ?? [], order_index: item.order_index });
+    setTagInput(''); setImageFile(null); setImagePreview(item.image_url); setError(null); setModalOpen(true);
   };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingId(null);
-    setForm(emptyForm);
-    setImageFile(null);
-    setImagePreview(null);
-    setError(null);
-  };
+  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm(emptyForm); setImageFile(null); setImagePreview(null); setError(null); };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === 'order_index' ? Number(value) : value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: name === 'order_index' ? Number(value) : value }));
   };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };
-
   const handleAddTag = () => {
     const tag = tagInput.trim();
     if (!tag || form.tags.includes(tag)) return;
     setForm((prev) => ({ ...prev, tags: [...prev.tags, tag] }));
     setTagInput('');
   };
-
-  const handleRemoveTag = (tag: string) => {
-    setForm((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
-  };
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); }
-  };
+  const handleRemoveTag = (tag: string) => { setForm((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) })); };
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } };
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return form.image_url;
     setUploading(true);
     const ext = imageFile.name.split('.').pop();
     const fileName = `portfolio/portfolio-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(fileName, imageFile, { upsert: true });
+    const { error: uploadError } = await supabase.storage.from('media').upload(fileName, imageFile, { upsert: true });
     if (uploadError) { setError('Image upload failed.'); setUploading(false); return null; }
     const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName);
     setUploading(false);
@@ -126,34 +88,17 @@ export default function PortfolioPage() {
     e.preventDefault();
     setError(null);
     setSaving(true);
-
     const imageUrl = await uploadImage();
     if (imageUrl === null && imageFile) { setSaving(false); return; }
-
-    const payload = {
-      title: form.title,
-      description: form.description,
-      image_url: imageUrl,
-      tags: form.tags,
-      order_index: form.order_index,
-    };
-
+    const payload = { title: form.title, description: form.description, image_url: imageUrl, tags: form.tags, order_index: form.order_index };
     if (editingId) {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .update(payload)
-        .eq('id', editingId);
+      const { error } = await supabase.from('portfolio_items').update(payload).eq('id', editingId);
       if (error) { setError('Failed to update item.'); setSaving(false); return; }
     } else {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .insert(payload);
+      const { error } = await supabase.from('portfolio_items').insert(payload);
       if (error) { setError('Failed to create item.'); setSaving(false); return; }
     }
-
-    setSaving(false);
-    closeModal();
-    fetchItems();
+    setSaving(false); closeModal(); fetchItems();
   };
 
   const handleDelete = async (id: string) => {
@@ -161,35 +106,72 @@ export default function PortfolioPage() {
     if (!error) { setDeleteId(null); fetchItems(); }
   };
 
+  // Loading State
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="p-6 md:p-10">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="h-8 w-32 bg-gray-800 rounded-lg animate-pulse mb-2" />
+            <div className="h-4 w-48 bg-gray-800 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-32 bg-gray-800 rounded-lg animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+              <div className="h-44 bg-gray-800 animate-pulse" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 w-3/4 bg-gray-800 rounded animate-pulse" />
+                <div className="h-3 w-full bg-gray-800 rounded animate-pulse" />
+                <div className="h-3 w-2/3 bg-gray-800 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (fetchError) {
+    return (
+      <div className="p-6 md:p-10">
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4">
+            <AlertCircle size={24} className="text-red-400" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-2">Failed to Load</h3>
+          <p className="text-gray-400 text-sm mb-6 max-w-xs">{fetchError}</p>
+          <button onClick={() => { setLoading(true); fetchItems(); }} className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-5 py-2.5 transition">Try Again</button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-6 md:p-10">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Portfolio</h1>
           <p className="text-gray-400 text-sm mt-1">Manage your portfolio items</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
-        >
+        <button onClick={openCreate} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition">
           <Plus size={16} /> Add Item
         </button>
       </div>
 
-      {/* Grid */}
+      {/* Empty State */}
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
-          <ImageIcon size={40} className="mb-3" />
-          <p className="text-sm">No portfolio items yet.</p>
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-12 h-12 bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+            <ImageIcon size={24} className="text-gray-600" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-2">No Portfolio Items Yet</h3>
+          <p className="text-gray-400 text-sm mb-6 max-w-xs">Start building your portfolio by adding your first project.</p>
+          <button onClick={openCreate} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-5 py-2.5 transition">
+            <Plus size={15} /> Add Item
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -213,23 +195,15 @@ export default function PortfolioPage() {
                 {item.tags?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {item.tags.map((tag) => (
-                      <span key={tag} className="bg-indigo-600/10 text-indigo-400 text-xs px-2 py-0.5 rounded-full">
-                        {tag}
-                      </span>
+                      <span key={tag} className="bg-indigo-600/10 text-indigo-400 text-xs px-2 py-0.5 rounded-full">{tag}</span>
                     ))}
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => openEdit(item)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg px-3 py-2 transition"
-                  >
+                  <button onClick={() => openEdit(item)} className="flex-1 inline-flex items-center justify-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg px-3 py-2 transition">
                     <Pencil size={13} /> Edit
                   </button>
-                  <button
-                    onClick={() => setDeleteId(item.id)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg px-3 py-2 transition"
-                  >
+                  <button onClick={() => setDeleteId(item.id)} className="flex-1 inline-flex items-center justify-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg px-3 py-2 transition">
                     <Trash2 size={13} /> Delete
                   </button>
                 </div>
@@ -239,95 +213,43 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* Modal Form */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-              <h2 className="text-white font-semibold text-base">
-                {editingId ? 'Edit Item' : 'Add Portfolio Item'}
-              </h2>
-              <button onClick={closeModal} className="text-gray-500 hover:text-white transition">
-                <X size={18} />
-              </button>
+              <h2 className="text-white font-semibold text-base">{editingId ? 'Edit Item' : 'Add Portfolio Item'}</h2>
+              <button onClick={closeModal} className="text-gray-500 hover:text-white transition"><X size={18} /></button>
             </div>
-
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Title</label>
-                <input
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                />
+                <input name="title" value={form.title} onChange={handleChange} required className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
               </div>
-
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Description</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none"
-                />
+                <textarea name="description" value={form.description} onChange={handleChange} rows={3} required className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none" />
               </div>
-
-              {/* Order Index */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Order Index</label>
-                <input
-                  name="order_index"
-                  type="number"
-                  value={form.order_index}
-                  onChange={handleChange}
-                  min={0}
-                  className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                />
+                <input name="order_index" type="number" value={form.order_index} onChange={handleChange} min={0} className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
               </div>
-
-              {/* Tags */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Tags</label>
                 <div className="flex gap-2 mb-2">
-                  <input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagKeyDown}
-                    placeholder="Add a tag..."
-                    className="flex-1 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddTag}
-                    className="inline-flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-2.5 transition"
-                  >
-                    <Tag size={14} />
-                  </button>
+                  <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} placeholder="Add a tag..." className="flex-1 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" />
+                  <button type="button" onClick={handleAddTag} className="inline-flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-2.5 transition"><Tag size={14} /></button>
                 </div>
                 {form.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {form.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-1 bg-indigo-600/10 text-indigo-400 text-xs px-2.5 py-1 rounded-full"
-                      >
+                      <span key={tag} className="inline-flex items-center gap-1 bg-indigo-600/10 text-indigo-400 text-xs px-2.5 py-1 rounded-full">
                         {tag}
-                        <button type="button" onClick={() => handleRemoveTag(tag)}>
-                          <X size={11} />
-                        </button>
+                        <button type="button" onClick={() => handleRemoveTag(tag)}><X size={11} /></button>
                       </span>
                     ))}
                   </div>
                 )}
               </div>
-
-              {/* Image */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Image</label>
                 {imagePreview ? (
@@ -345,31 +267,15 @@ export default function PortfolioPage() {
                   <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
               </div>
-
               {error && (
-                <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-2.5">
-                  {error}
+                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-2.5">
+                  <AlertCircle size={15} className="shrink-0" /> {error}
                 </div>
               )}
-
               <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || uploading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
-                >
-                  {saving ? (
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Save size={14} />
-                  )}
+                <button type="button" onClick={closeModal} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition">Cancel</button>
+                <button type="submit" disabled={saving || uploading} className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg px-4 py-2.5 transition">
+                  {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
                   {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
@@ -378,25 +284,14 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* Delete Confirm */}
       {deleteId && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-white font-semibold text-base mb-2">Delete Item</h3>
             <p className="text-gray-400 text-sm mb-6">Are you sure you want to delete this portfolio item? This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteId)}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition"
-              >
-                Delete
-              </button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition">Cancel</button>
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition">Delete</button>
             </div>
           </div>
         </div>
