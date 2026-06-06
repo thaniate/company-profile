@@ -1,232 +1,250 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
-import { Save, Upload, X } from "lucide-react";
-import { HeroSection } from "@/lib/types";
-import Image from "next/image";
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { HeroSection } from '@/lib/types';
+import { Upload, Save, ImageIcon } from 'lucide-react';
 
-export default function HeroEditor() {
+export default function HeroPage() {
   const supabase = createClient();
+
   const [data, setData] = useState<HeroSection | null>(null);
+  const [form, setForm] = useState({
+    headline: '',
+    subheadline: '',
+    cta_text: '',
+    cta_url: '',
+    image_url: '' as string | null,
+  });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data: hero } = await supabase
-        .from("hero_section")
-        .select("*")
+    const fetchHero = async () => {
+      const { data: hero, error } = await supabase
+        .from('hero_section')
+        .select('*')
         .single();
+
+      if (error) {
+        setError('Failed to load hero section.');
+        setLoading(false);
+        return;
+      }
+
       setData(hero);
+      setForm({
+        headline: hero.headline,
+        subheadline: hero.subheadline,
+        cta_text: hero.cta_text,
+        cta_url: hero.cta_url,
+        image_url: hero.image_url,
+      });
+      setImagePreview(hero.image_url);
       setLoading(false);
     };
-    fetch();
+
+    fetchHero();
   }, []);
 
-  const handleSave = async () => {
-    if (!data) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("hero_section")
-        .update({
-          headline: data.headline,
-          subheadline: data.subheadline,
-          cta_text: data.cta_text,
-          cta_url: data.cta_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", data.id);
-
-      if (error) throw error;
-      toast.success("Hero section saved.");
-    } catch {
-      toast.error("Failed to save. Try again.");
-    } finally {
-      setSaving(false);
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !data) return;
-    setUploading(true);
-
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `hero/hero-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("media")
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("media")
-        .getPublicUrl(path);
-
-      const { error: updateError } = await supabase
-        .from("hero_section")
-        .update({ image_url: urlData.publicUrl })
-        .eq("id", data.id);
-
-      if (updateError) throw updateError;
-
-      setData({ ...data, image_url: urlData.publicUrl });
-      toast.success("Image uploaded.");
-    } catch {
-      toast.error("Upload failed.");
-    } finally {
-      setUploading(false);
-    }
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const handleRemoveImage = async () => {
-    if (!data) return;
-    const { error } = await supabase
-      .from("hero_section")
-      .update({ image_url: null })
-      .eq("id", data.id);
-    if (!error) {
-      setData({ ...data, image_url: null });
-      toast.success("Image removed.");
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return form.image_url;
+
+    setUploading(true);
+    const ext = imageFile.name.split('.').pop();
+    const fileName = `hero/hero-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('media')
+      .upload(fileName, imageFile, { upsert: true });
+
+    if (uploadError) {
+      setError('Image upload failed.');
+      setUploading(false);
+      return null;
     }
+
+    const { data: urlData } = supabase.storage
+      .from('media')
+      .getPublicUrl(fileName);
+
+    setUploading(false);
+    return urlData.publicUrl;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+    setSaving(true);
+
+    const imageUrl = await uploadImage();
+    if (imageUrl === null && imageFile) {
+      setSaving(false);
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from('hero_section')
+      .update({
+        headline: form.headline,
+        subheadline: form.subheadline,
+        cta_text: form.cta_text,
+        cta_url: form.cta_url,
+        image_url: imageUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', data?.id);
+
+    if (updateError) {
+      setError('Failed to save changes.');
+      setSaving(false);
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, image_url: imageUrl }));
+    setImageFile(null);
+    setSuccess(true);
+    setSaving(false);
   };
 
   if (loading) {
     return (
-      <div className="p-10 flex items-center gap-3 text-muted font-mono text-sm">
-        <div className="w-4 h-4 border-2 border-muted/30 border-t-gold rounded-full animate-spin" />
-        Loading...
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!data) return <div className="p-10 text-muted font-mono text-sm">No data found.</div>;
-
   return (
-    <div className="p-6 md:p-10 max-w-3xl">
-      {/* Header */}
+    <div className="p-6 md:p-10 max-w-2xl">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="gold-line" />
-          <span className="text-gold text-xs tracking-[0.3em] uppercase font-mono">
-            Hero Section
-          </span>
-        </div>
-        <h1 className="font-display text-4xl text-cream">Edit Hero</h1>
+        <h1 className="text-2xl font-bold text-white">Hero Section</h1>
+        <p className="text-gray-400 text-sm mt-1">Edit your homepage hero content</p>
       </div>
 
-      <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Headline */}
-        <div className="space-y-1.5">
-          <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-            Headline
-          </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Headline</label>
           <input
-            value={data.headline}
-            onChange={(e) => setData({ ...data, headline: e.target.value })}
-            className="input-base"
-            placeholder="We Build Digital Experiences"
+            name="headline"
+            value={form.headline}
+            onChange={handleChange}
+            required
+            className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
           />
         </div>
 
         {/* Subheadline */}
-        <div className="space-y-1.5">
-          <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-            Subheadline
-          </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Subheadline</label>
           <textarea
-            value={data.subheadline}
-            onChange={(e) => setData({ ...data, subheadline: e.target.value })}
+            name="subheadline"
+            value={form.subheadline}
+            onChange={handleChange}
             rows={3}
-            className="input-base resize-none"
-            placeholder="A short compelling description..."
+            required
+            className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none"
           />
         </div>
 
-        {/* CTA row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
-            <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-              CTA Button Text
-            </label>
+        {/* CTA */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">CTA Text</label>
             <input
-              value={data.cta_text}
-              onChange={(e) => setData({ ...data, cta_text: e.target.value })}
-              className="input-base"
-              placeholder="See Our Work"
+              name="cta_text"
+              value={form.cta_text}
+              onChange={handleChange}
+              required
+              className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-              CTA Button URL
-            </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">CTA URL</label>
             <input
-              value={data.cta_url}
-              onChange={(e) => setData({ ...data, cta_url: e.target.value })}
-              className="input-base"
-              placeholder="#portfolio"
+              name="cta_url"
+              value={form.cta_url}
+              onChange={handleChange}
+              required
+              className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
             />
           </div>
         </div>
 
-        {/* Image */}
-        <div className="space-y-3">
-          <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-            Background Image
-          </label>
-          {data.image_url ? (
-            <div className="relative aspect-video border border-border overflow-hidden bg-surface">
-              <Image
-                src={data.image_url}
-                alt="Hero"
-                fill
-                className="object-cover"
-              />
-              <button
-                onClick={handleRemoveImage}
-                className="absolute top-3 right-3 bg-background/80 border border-border text-muted hover:text-red-400 p-1.5 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center aspect-video border border-dashed border-border hover:border-gold cursor-pointer transition-colors group bg-surface">
-              <Upload
-                size={20}
-                className="text-muted group-hover:text-gold transition-colors mb-2"
-              />
-              <span className="text-muted text-xs font-mono group-hover:text-gold transition-colors">
-                {uploading ? "Uploading..." : "Click to upload image"}
-              </span>
+        {/* Image Upload */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Hero Image</label>
+          <div className="flex flex-col gap-3">
+            {imagePreview ? (
+              <div className="relative w-full h-48 rounded-xl overflow-hidden border border-gray-700">
+                <img
+                  src={imagePreview}
+                  alt="Hero preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-48 rounded-xl border border-dashed border-gray-700 flex items-center justify-center">
+                <ImageIcon size={32} className="text-gray-600" />
+              </div>
+            )}
+            <label className="cursor-pointer inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-sm font-medium rounded-lg px-4 py-2.5 transition w-fit">
+              <Upload size={15} />
+              {uploading ? 'Uploading...' : 'Choose Image'}
               <input
                 type="file"
                 accept="image/*"
-                onChange={handleImageUpload}
+                onChange={handleImageChange}
                 className="hidden"
-                disabled={uploading}
               />
             </label>
-          )}
+          </div>
         </div>
 
-        {/* Save */}
-        <div className="pt-4 border-t border-border">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-3 bg-gold text-background px-6 py-3 text-sm tracking-widest uppercase font-body font-medium hover:bg-gold-light transition-colors duration-300 disabled:opacity-50 group"
-          >
-            <Save size={14} />
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      </div>
+        {/* Feedback */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-2.5">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg px-4 py-2.5">
+            Hero section updated successfully.
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={saving || uploading}
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg px-6 py-2.5 transition"
+        >
+          {saving ? (
+            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Save size={15} />
+          )}
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </form>
     </div>
   );
 }

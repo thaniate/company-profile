@@ -1,18 +1,12 @@
-import Sidebar from "@/components/admin/Sidebar";
+import Sidebar from '@/components/admin/Sidebar';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-950 flex">
       <Sidebar />
-      <div className="lg:pl-56">
-        <div className="min-h-screen pt-16 lg:pt-0">
-          {children}
-        </div>
-      </div>
+      <main className="flex-1 md:overflow-y-auto md:pt-0 pt-14">
+        {children}
+      </main>
     </div>
   );
 }
