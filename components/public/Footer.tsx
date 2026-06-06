@@ -28,17 +28,19 @@ export default function Footer() {
                 Studio
               </span>
             </div>
+
             <p className="text-muted text-sm leading-relaxed max-w-xs">
               A creative studio crafting brands and digital products that leave
               a lasting impression.
             </p>
           </div>
 
-          {/* Nav */}
+          {/* Navigation */}
           <div className="space-y-4">
             <p className="text-xs tracking-widest uppercase text-gold font-mono">
               Navigation
             </p>
+
             <ul className="space-y-2">
               {footerLinks.map((link) => (
                 <li key={link.href}>
@@ -58,17 +60,20 @@ export default function Footer() {
             <p className="text-xs tracking-widest uppercase text-gold font-mono">
               Follow Us
             </p>
+
             <ul className="space-y-2">
               {socials.map((s) => (
                 <li key={s.label}>
-                  
+                  <a
                     href={s.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-muted hover:text-cream text-sm transition-colors duration-200 inline-flex items-center gap-2 group"
                   >
                     {s.label}
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      ↗
+                    </span>
                   </a>
                 </li>
               ))}
@@ -76,11 +81,12 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar */}
+        {/* Bottom Bar */}
         <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-muted text-xs font-mono tracking-wider">
             © {year} Studio. All rights reserved.
           </p>
+
           <Link
             href="/login"
             className="text-muted/40 hover:text-muted text-xs font-mono tracking-wider transition-colors duration-300"
