@@ -31,6 +31,7 @@ export interface PortfolioItem {
   description: string
   image_url: string | null
   tags: string[]
+  slug: string
   order_index: number
   created_at: string
 }
