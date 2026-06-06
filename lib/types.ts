@@ -56,3 +56,15 @@ export interface ContactSubmission {
   is_read: boolean
   created_at: string
 }
+
+export interface SiteSettings {
+  id: string
+  company_name: string
+  company_email: string
+  company_phone: string
+  company_address: string
+  facebook_url: string
+  instagram_url: string
+  linkedin_url: string
+  updated_at: string
+}
