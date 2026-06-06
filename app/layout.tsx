@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans, DM_Mono } from "next/font/google";
+import { Playfair_Display, Space_Mono, Abril_Fatface } from "next/font/google";
 import { Toaster } from "sonner";
 import { constructMetadata } from "@/lib/metadata";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
+const playfair = Playfair_Display({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "700", "900"],
   style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const spaceMono = Space_Mono({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "700"],
   variable: "--font-body",
   display: "swap",
 });
 
-const dmMono = DM_Mono({
+const abrilFatface = Abril_Fatface({
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  variable: "--font-mono",
+  weight: ["400"],
+  variable: "--font-accent",
   display: "swap",
 });
 
@@ -36,19 +36,42 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${dmSans.variable} ${dmMono.variable}`}
+      className={`${playfair.variable} ${spaceMono.variable} ${abrilFatface.variable}`}
     >
       <body>
+        <div className="cursor" id="cursor" />
         {children}
         <Toaster
-          theme="dark"
+          theme="light"
           toastOptions={{
             style: {
-              background: "#111110",
-              border: "1px solid #1e1e1b",
-              color: "#f5f0e8",
+              background: "#fdf5e8",
+              border: "1.5px solid #930500",
+              color: "#1a0000",
               fontFamily: "var(--font-body)",
+              fontSize: "0.75rem",
+              letterSpacing: "0.05em",
             },
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              const cursor = document.getElementById('cursor');
+              let mouseX = 0, mouseY = 0, cursorX = 0, cursorY = 0;
+              document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+              (function animate() {
+                cursorX += (mouseX - cursorX) * 0.15;
+                cursorY += (mouseY - cursorY) * 0.15;
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+                requestAnimationFrame(animate);
+              })();
+              document.addEventListener('mouseover', e => {
+                if (e.target.closest('a, button, [data-cursor]')) cursor.classList.add('hover');
+                else cursor.classList.remove('hover');
+              });
+            `,
           }}
         />
       </body>

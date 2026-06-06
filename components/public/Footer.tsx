@@ -8,8 +8,8 @@ const footerLinks = [
 ];
 
 const socials = [
-  { label: "Instagram", href: "#" },
-  { label: "LinkedIn", href: "#" },
+  { label: "IG", href: "#" },
+  { label: "Behance", href: "#" },
   { label: "Dribbble", href: "#" },
 ];
 
@@ -17,19 +17,17 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-surface border-t border-border">
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
+    <footer className="bg-text-dark border-t-2 border-sangria">
+      {/* Gingham strip */}
+      <div className="gingham-strip" />
+
+      <div className="max-w-7xl mx-auto px-6 md:px-10 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="w-5 h-5 border border-gold rotate-45 inline-block" />
-              <span className="font-display text-lg tracking-widest text-cream uppercase">
-                Studio
-              </span>
-            </div>
+            <span className="font-accent text-cream text-2xl">Studio</span>
 
-            <p className="text-muted text-sm leading-relaxed max-w-xs">
+            <p className="text-cream/40 text-[0.65rem] leading-[1.8] font-body tracking-[0.03em] max-w-xs">
               A creative studio crafting brands and digital products that leave
               a lasting impression.
             </p>
@@ -37,7 +35,7 @@ export default function Footer() {
 
           {/* Navigation */}
           <div className="space-y-4">
-            <p className="text-xs tracking-widest uppercase text-gold font-mono">
+            <p className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-sangria">
               Navigation
             </p>
 
@@ -46,7 +44,7 @@ export default function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-muted hover:text-cream text-sm transition-colors duration-200"
+                    className="text-cream/50 hover:text-cream text-[0.7rem] font-body transition-colors duration-200"
                   >
                     {link.label}
                   </Link>
@@ -57,39 +55,49 @@ export default function Footer() {
 
           {/* Socials */}
           <div className="space-y-4">
-            <p className="text-xs tracking-widest uppercase text-gold font-mono">
+            <p className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-sangria">
               Follow Us
             </p>
 
-            <ul className="space-y-2">
-              {socials.map((s) => (
-                <li key={s.label}>
+            <div className="flex items-center gap-4">
+              {socials.map((s, i) => (
+                <span key={s.label} className="flex items-center gap-4">
                   <a
                     href={s.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted hover:text-cream text-sm transition-colors duration-200 inline-flex items-center gap-2 group"
+                    className="text-cream/50 hover:text-cream text-[0.7rem] font-body font-bold transition-colors duration-200"
+                    data-cursor
                   >
                     {s.label}
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      ↗
-                    </span>
                   </a>
-                </li>
+
+                  {i < socials.length - 1 && (
+                    <span className="text-sangria/40 text-xs">·</span>
+                  )}
+                </span>
               ))}
-            </ul>
+            </div>
+
+            {/* Bandung tag */}
+            <div
+              className="w-fit bg-sangria text-cream font-body font-bold text-[0.55rem] tracking-[0.1em] uppercase px-3 py-1.5 mt-2"
+              style={{ transform: "rotate(-1deg)" }}
+            >
+              📍 Bandung, Indonesia
+            </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-muted text-xs font-mono tracking-wider">
-            © {year} Studio. All rights reserved.
+        {/* Bottom bar */}
+        <div className="pt-6 border-t border-cream/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-cream/30 text-[0.62rem] font-body tracking-wider">
+            © {year} Studio — All rights reserved
           </p>
 
           <Link
             href="/login"
-            className="text-muted/40 hover:text-muted text-xs font-mono tracking-wider transition-colors duration-300"
+            className="text-cream/20 hover:text-cream/50 text-[0.6rem] font-body tracking-wider transition-colors duration-300"
           >
             Admin
           </Link>

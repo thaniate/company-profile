@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
 import clsx from "clsx";
 
 const navLinks = [
@@ -40,69 +39,72 @@ export default function Navbar() {
         className={clsx(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
           scrolled
-            ? "py-4 bg-background/90 backdrop-blur-md border-b border-border"
-            : "py-7"
+            ? "py-3 bg-cream/95 backdrop-blur-md border-b border-sangria/20"
+            : "py-5 bg-transparent"
         )}
+        style={{ mixBlendMode: scrolled ? "normal" : "multiply" }}
       >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-3">
-            <span className="w-6 h-6 border border-gold rotate-45 group-hover:rotate-90 transition-transform duration-500" />
-            <span className="font-display text-xl tracking-widest text-cream uppercase">
-              Studio
-            </span>
+          <Link href="/" className="font-accent text-sangria text-xl tracking-wide">
+            Studio
           </Link>
 
-          {/* Desktop Nav */}
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
-                className="text-muted hover:text-cream text-sm tracking-wider uppercase font-body transition-colors duration-200 relative group"
+                className="relative text-sangria font-body text-[0.68rem] font-bold tracking-[0.15em] uppercase group"
+                data-cursor
               >
                 {link.label}
-                <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-gold group-hover:w-full transition-all duration-300" />
+                <span className="absolute -bottom-0.5 left-0 w-0 h-[1.5px] bg-sangria group-hover:w-full transition-all duration-300" />
               </button>
             ))}
           </nav>
 
           {/* CTA */}
-          <Link
-            href="#contact"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavClick("#contact");
-            }}
-            className="hidden md:inline-flex items-center gap-2 border border-gold text-gold hover:bg-gold hover:text-background px-5 py-2 text-sm tracking-wider uppercase transition-all duration-300"
+          <button
+            onClick={() => handleNavClick("#contact")}
+            className="hidden md:inline-flex items-center gap-2 bg-sangria text-cream text-[0.65rem] font-bold tracking-[0.18em] uppercase px-5 py-2.5 hover:bg-sangria-dark transition-colors duration-200"
+            data-cursor
           >
             Let&apos;s Talk
-          </Link>
+            <span>→</span>
+          </button>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile burger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden text-cream p-1"
+            className="md:hidden flex flex-col gap-1.5 p-1"
             aria-label="Toggle menu"
+            data-cursor
           >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            <span className={clsx("w-6 h-[1.5px] bg-sangria transition-all duration-300", menuOpen && "rotate-45 translate-y-[6px]")} />
+            <span className={clsx("w-6 h-[1.5px] bg-sangria transition-all duration-300", menuOpen && "opacity-0")} />
+            <span className={clsx("w-6 h-[1.5px] bg-sangria transition-all duration-300", menuOpen && "-rotate-45 -translate-y-[6px]")} />
           </button>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile menu */}
       <div
         className={clsx(
-          "fixed inset-0 z-40 bg-background flex flex-col justify-center px-8 transition-all duration-500 md:hidden",
+          "fixed inset-0 z-40 bg-cream flex flex-col justify-center px-10 transition-all duration-500 md:hidden",
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
       >
-        <nav className="flex flex-col gap-8">
+        {/* Checker accent top */}
+        <div className="absolute top-0 left-0 right-0 h-2 checker" />
+
+        <nav className="flex flex-col gap-6">
           {navLinks.map((link, i) => (
             <button
               key={link.href}
               onClick={() => handleNavClick(link.href)}
-              className="text-left font-display text-5xl text-cream/80 hover:text-gold transition-colors duration-200"
+              className="text-left font-display text-5xl font-black text-sangria hover:text-cornflower-dark transition-colors duration-200 italic"
               style={{ transitionDelay: menuOpen ? `${i * 60}ms` : "0ms" }}
             >
               {link.label}
@@ -110,14 +112,17 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="mt-12 pt-8 border-t border-border">
+        <div className="mt-10 pt-6 border-t border-sangria/20">
           <button
             onClick={() => handleNavClick("#contact")}
-            className="font-body text-sm text-muted tracking-widest uppercase hover:text-gold transition-colors"
+            className="text-[0.65rem] font-bold tracking-[0.2em] uppercase text-muted hover:text-sangria transition-colors"
           >
             Let&apos;s Talk →
           </button>
         </div>
+
+        {/* Checker accent bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-2 checker" />
       </div>
     </>
   );

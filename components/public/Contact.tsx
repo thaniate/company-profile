@@ -59,83 +59,85 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="section-padding" ref={ref}>
-      <div className="max-w-7xl mx-auto px-6">
+    <section id="contact" className="section-padding bg-cream" ref={ref}>
+      <div className="max-w-7xl mx-auto px-6 md:px-10">
         {/* Header */}
         <div className="anim-hidden mb-16">
-          <div className="flex items-center gap-4 mb-4">
-            <span className="gold-line" />
-            <span className="text-gold text-xs tracking-[0.3em] uppercase font-mono">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="sangria-line" />
+            <span className="text-sangria text-[0.65rem] font-bold tracking-[0.2em] uppercase font-body">
               Get In Touch
             </span>
           </div>
-          <h2 className="font-display text-5xl md:text-6xl text-cream leading-tight">
-            Start a <em>Project</em>
+          <h2
+            className="font-display font-black text-sangria leading-[0.92]"
+            style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}
+          >
+            Let&apos;s<br />
+            <em>Work</em><br />
+            Together.
           </h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-16">
           {/* Info */}
           <div className="lg:col-span-2 space-y-10 anim-hidden">
-            <p className="text-muted leading-relaxed">
+            <p className="text-sangria-dark text-[0.72rem] leading-[1.8] font-body tracking-[0.03em]">
               Have a project in mind? We&apos;d love to hear about it. Send us a
               message and we&apos;ll get back to you within 24 hours.
             </p>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               {[
-                {
-                  icon: <Mail size={16} />,
-                  label: "Email",
-                  value: "hello@studio.com",
-                },
-                {
-                  icon: <Phone size={16} />,
-                  label: "Phone",
-                  value: "+62 812 3456 7890",
-                },
-                {
-                  icon: <MapPin size={16} />,
-                  label: "Location",
-                  value: "Bandung, Indonesia",
-                },
+                { icon: <Mail size={14} />, label: "Email", value: "hello@studio.com" },
+                { icon: <Phone size={14} />, label: "Phone", value: "+62 812 3456 7890" },
+                { icon: <MapPin size={14} />, label: "Location", value: "Bandung, Indonesia" },
               ].map((item) => (
                 <div key={item.label} className="flex items-start gap-4 group">
-                  <div className="w-8 h-8 border border-border group-hover:border-gold flex items-center justify-center text-muted group-hover:text-gold transition-all duration-300 flex-shrink-0 mt-0.5">
+                  <div className="w-8 h-8 border-2 border-sangria/30 group-hover:border-sangria flex items-center justify-center text-sangria/50 group-hover:text-sangria transition-all duration-300 flex-shrink-0 mt-0.5">
                     {item.icon}
                   </div>
                   <div>
-                    <p className="text-xs tracking-widest uppercase font-mono text-muted/60 mb-1">
+                    <p className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-muted mb-1">
                       {item.label}
                     </p>
-                    <p className="text-cream text-sm">{item.value}</p>
+                    <p className="text-sangria text-[0.78rem] font-body font-bold">
+                      {item.value}
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Decorative */}
-            <div className="pt-8 border-t border-border">
-              <p className="text-xs tracking-widest uppercase font-mono text-muted/40 mb-4">
+            {/* Response time */}
+            <div className="pt-6 border-t-2 border-sangria/10">
+              <p className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-muted mb-3">
                 Response time
               </p>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                <p className="text-sm text-muted">Usually within 24 hours</p>
+                <div className="w-2 h-2 rounded-full bg-sangria animate-pulse" />
+                <p className="text-[0.72rem] text-sangria-dark font-body">
+                  Usually within 24 hours
+                </p>
               </div>
+            </div>
+
+            {/* Decorative sticker */}
+            <div
+              className="hidden lg:flex w-fit bg-cornflower border-2 border-sangria px-5 py-3 font-body font-bold text-sangria text-[0.6rem] tracking-[0.1em] uppercase"
+              style={{ transform: "rotate(-2deg)", animation: "wobble1 5s ease-in-out infinite" }}
+            >
+              ✦ Let&apos;s create something great
             </div>
           </div>
 
           {/* Form */}
           <div className="lg:col-span-3 anim-hidden">
-            <div
-              className="space-y-5"
-              onSubmit={handleSubmit(onSubmit)}
-            >
+            <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-                    Name <span className="text-gold">*</span>
+                  <label className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-muted">
+                    Name <span className="text-sangria">*</span>
                   </label>
                   <input
                     {...register("name", { required: "Name is required" })}
@@ -143,15 +145,15 @@ export default function Contact() {
                     className="input-base"
                   />
                   {errors.name && (
-                    <p className="text-red-400 text-xs font-mono">
+                    <p className="text-sangria-light text-[0.65rem] font-body">
                       {errors.name.message}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-                    Email <span className="text-gold">*</span>
+                  <label className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-muted">
+                    Email <span className="text-sangria">*</span>
                   </label>
                   <input
                     {...register("email", {
@@ -166,7 +168,7 @@ export default function Contact() {
                     className="input-base"
                   />
                   {errors.email && (
-                    <p className="text-red-400 text-xs font-mono">
+                    <p className="text-sangria-light text-[0.65rem] font-body">
                       {errors.email.message}
                     </p>
                   )}
@@ -174,7 +176,7 @@ export default function Contact() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
+                <label className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-muted">
                   Phone
                 </label>
                 <input
@@ -186,17 +188,17 @@ export default function Contact() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs tracking-widest uppercase font-mono text-muted/60">
-                  Message <span className="text-gold">*</span>
+                <label className="text-[0.58rem] tracking-[0.2em] uppercase font-body font-bold text-muted">
+                  Message <span className="text-sangria">*</span>
                 </label>
                 <textarea
                   {...register("message", { required: "Message is required" })}
-                  rows={5}
+                  rows={6}
                   placeholder="Tell us about your project..."
                   className="input-base resize-none"
                 />
                 {errors.message && (
-                  <p className="text-red-400 text-xs font-mono">
+                  <p className="text-sangria-light text-[0.65rem] font-body">
                     {errors.message.message}
                   </p>
                 )}
@@ -206,20 +208,18 @@ export default function Contact() {
                 type="button"
                 onClick={handleSubmit(onSubmit)}
                 disabled={loading}
-                className="w-full bg-gold text-background py-4 text-sm tracking-widest uppercase font-body font-medium hover:bg-gold-light transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
+                data-cursor
+                className="w-full bg-sangria text-cream py-4 text-[0.65rem] tracking-[0.18em] uppercase font-body font-bold hover:bg-sangria-dark transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
               >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
                     Sending...
                   </>
                 ) : (
                   <>
                     Send Message
-                    <Send
-                      size={14}
-                      className="group-hover:translate-x-1 transition-transform duration-300"
-                    />
+                    <Send size={13} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </>
                 )}
               </button>

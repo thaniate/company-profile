@@ -1,86 +1,119 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import clsx from "clsx";
 import {
-  LayoutDashboard,
-  Sparkles,
-  Briefcase,
-  FolderOpen,
-  MessageSquare,
-  Mail,
-  Menu,
-  X,
-} from 'lucide-react';
-import { useState } from 'react';
+  LayoutDashboard, Sparkles, Info, Briefcase,
+  FolderOpen, MessageSquare, Inbox, LogOut,
+  Menu, X, ChevronRight, Settings2,
+} from "lucide-react";
 
 const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Hero', href: '/dashboard/hero', icon: Sparkles },
-  { label: 'Services', href: '/dashboard/services', icon: Briefcase },
-  { label: 'Portfolio', href: '/dashboard/portfolio', icon: FolderOpen },
-  { label: 'Testimonials', href: '/dashboard/testimonials', icon: MessageSquare },
-  { label: 'Contacts', href: '/dashboard/contacts', icon: Mail },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Hero", href: "/dashboard/hero", icon: Sparkles },
+  { label: "About", href: "/dashboard/about", icon: Info },
+  { label: "Services", href: "/dashboard/services", icon: Briefcase },
+  { label: "Portfolio", href: "/dashboard/portfolio", icon: FolderOpen },
+  { label: "Testimonials", href: "/dashboard/testimonials", icon: MessageSquare },
+  { label: "Contacts", href: "/dashboard/contacts", icon: Inbox },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings2 },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const NavLinks = () => (
-    <nav className="flex flex-col gap-1 mt-6">
-      {navItems.map(({ label, href, icon: Icon }) => {
-        const isActive = pathname === href;
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition
-              ${isActive
-                ? 'bg-indigo-600 text-white'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-          >
-            <Icon size={17} />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    toast.success("Signed out.");
+    router.push("/login");
+    router.refresh();
+  };
+
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-6 py-6 border-b-2 border-sangria/20 flex items-center gap-3">
+        <span className="font-accent text-sangria text-lg">Studio</span>
+        <span className="ml-auto text-sangria/30 text-[0.55rem] font-body font-bold tracking-[0.15em] uppercase">CMS</span>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+        {navItems.map(({ label, href, icon: Icon }) => {
+          const active =
+            href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(href);
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileOpen(false)}
+              className={clsx(
+                "flex items-center gap-3 px-3 py-2.5 text-[0.72rem] font-body font-bold tracking-wide transition-all duration-200 border-l-2",
+                active
+                  ? "bg-sangria/10 text-sangria border-sangria"
+                  : "text-sangria-dark/60 hover:text-sangria hover:bg-sangria/5 border-transparent"
+              )}
+            >
+              <Icon size={14} className="flex-shrink-0" />
+              <span>{label}</span>
+              {active && <ChevronRight size={11} className="ml-auto text-sangria/50" />}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-3 py-5 border-t-2 border-sangria/10">
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="flex items-center gap-3 px-3 py-2.5 text-[0.72rem] font-body font-bold tracking-wide text-sangria-dark/50 hover:text-sangria-light transition-colors duration-200 w-full"
+        >
+          <LogOut size={14} />
+          <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>
+        </button>
+      </div>
+    </div>
   );
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gray-900 border-r border-gray-800 px-4 py-6 shrink-0">
-        <div className="px-2 mb-2">
-          <h2 className="text-white font-bold text-lg tracking-tight">CMS Panel</h2>
-          <p className="text-gray-500 text-xs mt-0.5">Company Profile</p>
-        </div>
-        <NavLinks />
+      {/* Desktop sidebar */}
+      <aside className="admin-sidebar hidden lg:flex flex-col w-56 min-h-screen fixed left-0 top-0 z-30">
+        <SidebarContent />
       </aside>
 
-      {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
-        <h2 className="text-white font-bold text-base">CMS Panel</h2>
+      {/* Mobile top bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-cream/95 backdrop-blur border-b-2 border-sangria/20 px-5 py-4 flex items-center justify-between">
+        <span className="font-accent text-sangria text-base">Studio CMS</span>
         <button
-          onClick={() => setMobileOpen((prev) => !prev)}
-          className="text-gray-400 hover:text-white transition"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="text-sangria p-1"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-30 bg-black/60" onClick={() => setMobileOpen(false)}>
-          <aside
-            className="w-64 min-h-screen bg-gray-900 border-r border-gray-800 px-4 py-6 pt-20"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <NavLinks />
-          </aside>
+        <div className="lg:hidden fixed inset-0 z-30 bg-cream/90 backdrop-blur-sm">
+          <div className="admin-sidebar w-64 h-full">
+            <div className="pt-16">
+              <SidebarContent />
+            </div>
+          </div>
         </div>
       )}
     </>
